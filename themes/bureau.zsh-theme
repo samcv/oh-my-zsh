@@ -12,7 +12,7 @@ ZSH_THEME_GIT_PROMPT_SUFFIX="%{$reset_color%}]"
 ZSH_THEME_GIT_PROMPT_CLEAN="%{$fg_bold[green]%}✓%{$reset_color%}"
 ZSH_THEME_GIT_PROMPT_AHEAD="%{$fg[cyan]%}▴%{$reset_color%}"
 ZSH_THEME_GIT_PROMPT_BEHIND="%{$fg[magenta]%}▾%{$reset_color%}"
-ZSH_THEME_GIT_PROMPT_STAGED="%{$fg_bold[green]%}●%{$reset_color%}"
+ZSH_THEME_GIT_PROMPT_STAGED="%{$fg_bold[blue]%}●%{$reset_color%}"
 ZSH_THEME_GIT_PROMPT_UNSTAGED="%{$fg_bold[yellow]%}●%{$reset_color%}"
 ZSH_THEME_GIT_PROMPT_UNTRACKED="%{$fg_bold[red]%}●%{$reset_color%}"
 
@@ -24,43 +24,59 @@ bureau_git_branch () {
 
 bureau_git_status() {
   _STATUS=""
-
+    MYNLNOW=$'\n'
+    _bureau_saved_RE_MATCH_PCRE="$RE_MATCH_PCRE"
+    RE_MATCH_PCRE=1
   # check status of files
-  _INDEX=$(command git status --porcelain 2> /dev/null)
+  _INDEX=$(command git status -b -uno --porcelain 2> /dev/null)
   if [[ -n "$_INDEX" ]]; then
-    if $(echo "$_INDEX" | command grep -q '^[AMRD]. '); then
+    if [[ $_INDEX =~ "(^|$MYNLNOW)[AMRD]. " ]]; then
+        [[ $_bureau_debug ]] && echo staged 1>&2
+    #if $(echo "$_INDEX" | command grep -q '^[AMRD]. '); then
       _STATUS="$_STATUS$ZSH_THEME_GIT_PROMPT_STAGED"
     fi
-    if $(echo "$_INDEX" | command grep -q '^.[MTD] '); then
+    if [[ $_INDEX =~ "(^|$MYNLNOW).[MTD] " ]]; then
+    [[ $_bureau_debug ]] && echo unstaged 1>&2
+    #if $(echo "$_INDEX" | command grep -q '^.[MTD] '); then
       _STATUS="$_STATUS$ZSH_THEME_GIT_PROMPT_UNSTAGED"
     fi
-    if $(echo "$_INDEX" | command grep -q -E '^\?\? '); then
+    if [[ $_INDEX =~ "(^|$MYNLNOW)\?\? " ]]; then
+    [[ $_bureau_debug ]] && echo untracked 1>&2
+    #if $(echo "$_INDEX" | command grep -q -E '^\?\? '); then
       _STATUS="$_STATUS$ZSH_THEME_GIT_PROMPT_UNTRACKED"
     fi
-    if $(echo "$_INDEX" | command grep -q '^UU '); then
+    if [[ $_INDEX =~ "(^|$MYNLNOW)UU " ]]; then
+    [[ $_bureau_debug ]] && echo unmerged 1>&2
+    #if $(echo "$_INDEX" | command grep -q '^UU '); then
       _STATUS="$_STATUS$ZSH_THEME_GIT_PROMPT_UNMERGED"
     fi
   else
     _STATUS="$_STATUS$ZSH_THEME_GIT_PROMPT_CLEAN"
   fi
-
+  
   # check status of local repository
-  _INDEX=$(command git status --porcelain -b 2> /dev/null)
-  if $(echo "$_INDEX" | command grep -q '^## .*ahead'); then
+  #_INDEX=$(command git status -uno --porcelain -b 2> /dev/null)
+  if [[ "$_INDEX" =~ '^## .*ahead' ]]; then
+    [[ $_bureau_debug ]] && echo ahead 1>&2
+  #if $(echo "$_INDEX" | command grep -q '^## .*ahead'); then
     _STATUS="$_STATUS$ZSH_THEME_GIT_PROMPT_AHEAD"
   fi
-  if $(echo "$_INDEX" | command grep -q '^## .*behind'); then
+  if [[ "$_INDEX" =~ '^## .*behind' ]]; then
+    [[ $_bureau_debug ]] && echo behind 1>&2
+  #if $(echo "$_INDEX" | command grep -q '^## .*behind'); then
     _STATUS="$_STATUS$ZSH_THEME_GIT_PROMPT_BEHIND"
   fi
-  if $(echo "$_INDEX" | command grep -q '^## .*diverged'); then
+  if [[ "$_INDEX" =~ '^## .*diverged' ]]; then
+    [[ $_bureau_debug ]] && echo diverged 1>&2
+  #if $(echo "$_INDEX" | command grep -q '^## .*diverged'); then
     _STATUS="$_STATUS$ZSH_THEME_GIT_PROMPT_DIVERGED"
   fi
 
   if $(command git rev-parse --verify refs/stash &> /dev/null); then
     _STATUS="$_STATUS$ZSH_THEME_GIT_PROMPT_STASHED"
   fi
-
-  echo $_STATUS
+   RE_MATCH_PCRE="$_bureau_saved_RE_MATCH_PCRE"
+  echo "$_STATUS"
 }
 
 bureau_git_prompt () {
